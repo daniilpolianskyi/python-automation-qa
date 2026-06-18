@@ -1,0 +1,70 @@
+name: Run Tests via Docker + Allure Report
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create allure-results directory
+        run: mkdir -p allure-results
+
+      - name: Build Docker Image
+        run: docker build -t qa-automation-image .
+
+      - name: Run Tests in Docker
+        env:
+          UI_USERNAME: ${{ secrets.UI_USERNAME }}
+          UI_PASSWORD: ${{ secrets.UI_PASSWORD }}
+        run: |
+          docker run --rm \
+            -e UI_USERNAME="$UI_USERNAME" \
+            -e UI_PASSWORD="$UI_PASSWORD" \
+            -v "${{ github.workspace }}/allure-results:/app/allure-results" \
+            qa-automation-image \
+            pytest --alluredir=/app/allure-results
+
+      - name: Install Allure
+        if: always()
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jre wget
+          wget https://github.com/allure-framework/allure2/releases/download/2.29.0/allure-2.29.0.tgz
+          tar -xzf allure-2.29.0.tgz
+          sudo mv allure-2.29.0 /opt/allure
+          sudo ln -sf /opt/allure/bin/allure /usr/bin/allure
+          allure --version
+
+      - name: Generate Allure Report
+        if: always()
+        run: |
+          if [ -d "allure-results" ] && [ "$(ls -A allure-results)" ]; then
+            allure generate allure-results -o allure-report --clean
+          else
+            echo "No allure-results found, creating empty report folder"
+            mkdir -p allure-report
+            echo "No test results available" > allure-report/index.html
+          fi
+
+      - name: Upload Allure Results Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: allure-results
+
+      - name: Deploy Allure Report
+        if: always()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: allure-report

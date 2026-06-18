@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Env files
+.env
+
+# pytest
+.pytest_cache/
+
+# Allure
+allure-results/
+allure-report/
+
+# logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Playwright
+playwright/.cache/
+
+# coverage
+htmlcov/
+.coverage
+coverage.xml
